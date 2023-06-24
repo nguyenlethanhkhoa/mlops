@@ -1,12 +1,20 @@
 version: "3.7"
 services:
+  base:
+    build:
+      context: .
+      dockerfile: src/base/Dockerfile
+    image: base
+
   mlflow:
     build:
       context: src/mlflow
-      dockerfile: src/mlflow/Dockerfile
+      dockerfile: Dockerfile
     hostname: mlflow
     image: mlflow
     container_name: mlflow
+    depends_on:
+      - base
     command:
       - bash
       - -c
@@ -14,21 +22,23 @@ services:
     ports:
       - 5000:5000
     volumes:
-      - ./src/mlflow:/mlflow
+      - ./src/mlflow/data:/mlflow
     networks:
       - default
 
   model_predictor:
     build:
       context: src/model_predictor
-      dockerfile: src/model_predictor/Dockerfile
+      dockerfile: Dockerfile
     image: model_predictor
     container_name: model_predictor
     hostname: model_predictor
+    depends_on:
+      - base
     ports:
       - 8000:8000
     volumes:
-      - ./model_predictor:/app/data
+      - ./src/model_predictor/data:/app/data
     env_file:
       - src/model_predictor/.env
     networks:

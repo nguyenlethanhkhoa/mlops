@@ -26,15 +26,15 @@ class Data(BaseModel):
 
 
 class ModelPredictor:
-    def __init__(self, config_file_path):
-        with open(config_file_path, "r") as f:
-            self.config = yaml.safe_load(f)
-        logging.info(f"model-config: {self.config}")
+    def __init__(self, config_file_path=None):
+        # with open(config_file_path, "r") as f:
+        #     self.config = yaml.safe_load(f)
+        # logging.info(f"model-config: {self.config}")
 
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
 
         self.prob_config = create_prob_config(
-            self.config["phase_id"], self.config["prob_id"]
+            'phase-1', 'prob-1'
         )
 
         # load category_index
@@ -42,7 +42,7 @@ class ModelPredictor:
 
         # load model
         model_uri = os.path.join(
-            "models:/", self.config["model_name"], str(self.config["model_version"])
+            "models:/", 'phase-1_prob-1_model-1', '1'
         )
         self.model = mlflow.pyfunc.load_model(model_uri)
 
@@ -62,9 +62,9 @@ class ModelPredictor:
             category_index=self.category_index,
         )
         # save request data for improving models
-        ModelPredictor.save_request_data(
-            feature_df, self.prob_config.captured_data_dir, data.id
-        )
+        # ModelPredictor.save_request_data(
+        #     feature_df, self.prob_config.captured_data_dir, data.id
+        # )
 
         prediction = self.model.predict(feature_df)
         is_drifted = self.detect_drift(feature_df)
@@ -107,18 +107,18 @@ class PredictorApi:
 
 
 if __name__ == "__main__":
-    default_config_path = (
-        AppPath.MODEL_CONFIG_DIR
-        / ProblemConst.PHASE1
-        / ProblemConst.PROB1
-        / "model-1.yaml"
-    ).as_posix()
+    # default_config_path = (
+    #     AppPath.MODEL_CONFIG_DIR
+    #     / ProblemConst.PHASE1
+    #     / ProblemConst.PROB1
+    #     / "model-1.yaml"
+    # ).as_posix()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config-path", type=str, default=default_config_path)
+    # parser.add_argument("--config-path", type=str, default=default_config_path)
     parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
     args = parser.parse_args()
 
-    predictor = ModelPredictor(config_file_path=args.config_path)
+    predictor = ModelPredictor()
     api = PredictorApi(predictor)
     api.run(port=args.port)
