@@ -1,0 +1,39 @@
+version: "3.7"
+services:
+  mlflow:
+    build:
+      context: src/mlflow
+      dockerfile: src/mlflow/Dockerfile
+    hostname: mlflow
+    image: mlflow
+    container_name: mlflow
+    command:
+      - bash
+      - -c
+      - "mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --serve-artifacts --host 0.0.0.0 --port 5000"
+    ports:
+      - 5000:5000
+    volumes:
+      - ./src/mlflow:/mlflow
+    networks:
+      - default
+
+  model_predictor:
+    build:
+      context: src/model_predictor
+      dockerfile: src/model_predictor/Dockerfile
+    image: model_predictor
+    container_name: model_predictor
+    hostname: model_predictor
+    ports:
+      - 8000:8000
+    volumes:
+      - ./model_predictor:/app/data
+    env_file:
+      - src/model_predictor/.env
+    networks:
+      - default
+
+networks:
+  service:
+    external: true
