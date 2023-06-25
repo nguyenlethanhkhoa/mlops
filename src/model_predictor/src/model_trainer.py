@@ -5,7 +5,7 @@ import mlflow
 import numpy as np
 import xgboost as xgb
 from mlflow.models.signature import infer_signature
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix
 
 from problem_config import (
     ProblemConfig,
@@ -54,7 +54,14 @@ class ModelTrainer:
         test_x, test_y = RawDataProcessor.load_test_data(prob_config)
         predictions = model.predict(test_x)
         auc_score = roc_auc_score(test_y, predictions)
-        metrics = {"test_auc": auc_score}
+        f1 = f1_score(test_y, predictions)
+        cm = confusion_matrix(test_y, predictions)
+
+        metrics = {
+            "test_auc": auc_score,
+            "f1_score": f1
+            # "confusion_matrix": cm.tostring(),
+        }
         logging.info(f"metrics: {metrics}")
 
         # mlflow log

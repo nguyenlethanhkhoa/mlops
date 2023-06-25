@@ -4,11 +4,16 @@ import pickle
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
+from typing import Callable
 from problem_config import ProblemConfig, ProblemConst, get_prob_config
 
 
 class RawDataProcessor:
+    # PROCESSOR_MAPPING = {
+    #     "phase-1_prob-1": Callable(process_raw_data_phase1_prob1),
+    #     "phase-1_prob-2": Callable(process_raw_data_phase1_prob2),
+    # }
+
     @staticmethod
     def build_category_features(data, categorical_cols=None):
         if categorical_cols is None:
@@ -45,8 +50,11 @@ class RawDataProcessor:
 
     @staticmethod
     def process_raw_data(prob_config: ProblemConfig):
+        logging.info(f"Problem {prob_config.phase_id} - {prob_config.prob_id}")
+        # PROCESSOR_MAPPING[prob_config.phase_id + "_" + prob_config.prob_id](prob_config)
         logging.info("start process_raw_data")
         training_data = pd.read_parquet(prob_config.raw_data_path)
+
         training_data, category_index = RawDataProcessor.build_category_features(
             training_data, prob_config.categorical_cols
         )
