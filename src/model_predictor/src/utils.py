@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
-load_dotenv('../.env')
+load_dotenv('../.env.local')
 
 
 class AppPath:

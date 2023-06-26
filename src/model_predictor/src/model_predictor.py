@@ -26,7 +26,7 @@ class Data(BaseModel):
 
 
 class ModelPredictor:
-    def __init__(self, config_file_path=None):
+    def __init__(self, phase, problem, model_name):
         # with open(config_file_path, "r") as f:
         #     self.config = yaml.safe_load(f)
         # logging.info(f"model-config: {self.config}")
@@ -34,7 +34,7 @@ class ModelPredictor:
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
 
         self.prob_config = create_prob_config(
-            'phase-1', 'prob-1'
+            phase, problem
         )
 
         # load category_index
@@ -42,14 +42,9 @@ class ModelPredictor:
 
         # load model
         model_uri = os.path.join(
-            "models:/", 'phase-1_prob-1_model-1', '1'
+            "models:/", f'{phase}_{problem}_{model_name}', 'latest'
         )
         self.model = mlflow.pyfunc.load_model(model_uri)
-
-    def detect_drift(self, feature_df) -> int:
-        # watch drift between coming requests and training data
-        time.sleep(0.02)
-        return random.choice([0, 1])
 
     def predict(self, data: Data):
         start_time = time.time()
@@ -67,7 +62,7 @@ class ModelPredictor:
         # )
 
         prediction = self.model.predict(feature_df)
-        is_drifted = self.detect_drift(feature_df)
+        is_drifted = random.choice([0, 1])
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction takes {run_time} ms")
@@ -89,17 +84,17 @@ class ModelPredictor:
 
 
 class PredictorApi:
-    def __init__(self, predictor: ModelPredictor):
-        self.predictor = predictor
+    def __init__(self, _models: dict):
         self.app = FastAPI()
+        self.models = _models
 
         @self.app.get("/")
         async def root():
             return {"message": "hello"}
 
-        @self.app.post("/phase-1/prob-1/predict")
-        async def predict(data: Data, request: Request):
-            response = self.predictor.predict(data)
+        @self.app.post("/{phase}/{problem}/predict")
+        async def predict(data: Data, phase, problem):
+            response = self.models[f"{phase}_{problem}"].predict(data)
             return response
 
     def run(self, port):
@@ -119,6 +114,8 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=PREDICTOR_API_PORT)
     args = parser.parse_args()
 
-    predictor = ModelPredictor()
-    api = PredictorApi(predictor)
+    models = {
+        'phase-1_prob-1': ModelPredictor('phase-1', 'prob-1', 'model-1')
+    }
+    api = PredictorApi(models)
     api.run(port=args.port)
