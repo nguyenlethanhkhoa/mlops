@@ -1,8 +1,10 @@
 import argparse
+import json
 import logging
 import os
 import random
 import time
+from typing import Optional, List
 
 import mlflow
 import pandas as pd
@@ -14,6 +16,7 @@ from pydantic import BaseModel
 
 from problem_config import ProblemConst, create_prob_config
 from raw_data_processor import RawDataProcessor
+from logger import ml_log
 from utils import AppConfig, AppPath
 
 PREDICTOR_API_PORT = 8000
@@ -23,13 +26,12 @@ class Data(BaseModel):
     id: str
     rows: list
     columns: list
+    prediction: Optional[List[int]]
+    drift: Optional[int]
 
 
 class ModelPredictor:
     def __init__(self, phase, problem, model_name):
-        # with open(config_file_path, "r") as f:
-        #     self.config = yaml.safe_load(f)
-        # logging.info(f"model-config: {self.config}")
 
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
 
@@ -56,16 +58,16 @@ class ModelPredictor:
             categorical_cols=self.prob_config.categorical_cols,
             category_index=self.category_index,
         )
-        # save request data for improving models
-        # ModelPredictor.save_request_data(
-        #     feature_df, self.prob_config.captured_data_dir, data.id
-        # )
 
         prediction = self.model.predict(feature_df)
         is_drifted = random.choice([0, 1])
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction takes {run_time} ms")
+        data.prediction = prediction
+        data.drift = is_drifted
+
+        ml_log.info(data.dict())
         return {
             "id": data.id,
             "predictions": prediction.tolist(),
