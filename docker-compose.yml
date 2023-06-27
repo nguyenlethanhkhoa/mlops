@@ -39,6 +39,7 @@ services:
       - 8000:8000
     volumes:
       - ./src/model_predictor/data:/app/data
+      - ./src/model_predictor/log:/app/src/log
     env_file:
       - src/model_predictor/.env
     networks:
