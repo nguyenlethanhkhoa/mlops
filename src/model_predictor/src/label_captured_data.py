@@ -25,7 +25,7 @@ def label_captured_data(prob_config: ProblemConfig):
     logging.info(f"Loaded {n_captured} captured samples, {n_samples} train + captured")
 
     n_cluster = int(n_samples / 10) * len(np.unique(train_y))
-    n_cluster = 1000
+    n_cluster = 20000
     logging.info(f"Initialize and fit the clustering model - {n_cluster} clusters")
 
     kmeans_model = MiniBatchKMeans(
