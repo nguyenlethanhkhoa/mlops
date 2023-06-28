@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from problem_config import ProblemConst, create_prob_config
 from raw_data_processor import RawDataProcessor
-from logger import ml_log
+from logger import model_1_log, model_2_log
 from utils import AppConfig, AppPath
 
 PREDICTOR_API_PORT = 8000
@@ -31,20 +31,18 @@ class Data(BaseModel):
 
 
 class ModelPredictor:
-    def __init__(self, phase, problem, model_name):
-
+    def __init__(self, phase, problem, model_name, _logger):
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
+        self.logger = _logger
 
-        self.prob_config = create_prob_config(
-            phase, problem
-        )
+        self.prob_config = create_prob_config(phase, problem)
 
         # load category_index
         self.category_index = RawDataProcessor.load_category_index(self.prob_config)
 
         # load model
         model_uri = os.path.join(
-            "models:/", f'{phase}_{problem}_{model_name}', 'latest'
+            "models:/", f"{phase}_{problem}_{model_name}", "latest"
         )
         self.model = mlflow.pyfunc.load_model(model_uri)
 
@@ -67,7 +65,7 @@ class ModelPredictor:
         data.prediction = prediction
         data.drift = is_drifted
 
-        ml_log.info(data.dict())
+        self.logger.info(data.dict())
         return {
             "id": data.id,
             "predictions": prediction.tolist(),
@@ -96,7 +94,8 @@ class PredictorApi:
 
         @self.app.post("/{phase}/{problem}/predict")
         async def predict(data: Data, phase, problem):
-            response = self.models[f"{phase}_{problem}"].predict(data)
+            model = self.models[f"{phase}_{problem}"]
+            response = model.predict(data)
             return response
 
     def run(self, port):
@@ -117,7 +116,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     models = {
-        'phase-1_prob-1': ModelPredictor('phase-1', 'prob-1', 'model-1')
+        "phase-1_prob-1": ModelPredictor("phase-1", "prob-1", "model-1", model_1_log),
+        "phase-1_prob-2": ModelPredictor("phase-1", "prob-2", "model-1", model_2_log),
     }
     api = PredictorApi(models)
     api.run(port=args.port)
