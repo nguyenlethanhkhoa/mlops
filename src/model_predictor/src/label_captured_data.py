@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 from problem_config import ProblemConfig, ProblemConst, get_prob_config
 
+from tqdm import tqdm
+
 
 def label_captured_data(prob_config: ProblemConfig):
     train_x = pd.read_parquet(prob_config.train_x_path).to_numpy()
@@ -22,8 +24,10 @@ def label_captured_data(prob_config: ProblemConfig):
     n_samples = len(train_x) + n_captured
     logging.info(f"Loaded {n_captured} captured samples, {n_samples} train + captured")
 
-    logging.info("Initialize and fit the clustering model")
     n_cluster = int(n_samples / 10) * len(np.unique(train_y))
+    n_cluster = 1000
+    logging.info(f"Initialize and fit the clustering model - {n_cluster} clusters")
+
     kmeans_model = MiniBatchKMeans(
         n_clusters=n_cluster, random_state=prob_config.random_state
     ).fit(train_x)
@@ -35,7 +39,7 @@ def label_captured_data(prob_config: ProblemConfig):
         "Assign new labels to the new data based on the labels of the original data in each cluster"
     )
     new_labels = []
-    for i in range(n_cluster):
+    for i in tqdm(range(n_cluster)):
         mask = kmeans_model.labels_ == i  # mask for data points in cluster i
         cluster_labels = train_y[mask]  # labels of data points in cluster i
         if len(cluster_labels) == 0:
@@ -50,6 +54,14 @@ def label_captured_data(prob_config: ProblemConfig):
                 new_labels.append(
                     np.bincount(cluster_labels.flatten().astype(int)).argmax()
                 )
+        # if i % 100 == 0:
+        #     approx_label = [new_labels[c] for c in kmeans_clusters]
+        #     approx_label_df = pd.DataFrame(
+        #         approx_label, columns=[prob_config.target_col]
+        #     )
+
+        #     captured_x.to_parquet(prob_config.captured_x_path, index=False)
+        #     approx_label_df.to_parquet(prob_config.uncertain_y_path, index=False)
 
     approx_label = [new_labels[c] for c in kmeans_clusters]
     approx_label_df = pd.DataFrame(approx_label, columns=[prob_config.target_col])
