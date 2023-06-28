@@ -62,10 +62,10 @@ class ModelPredictor:
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction takes {run_time} ms")
-        data.prediction = prediction
+        data.prediction = json.dumps(prediction.tolist())
         data.drift = is_drifted
 
-        self.logger.info(data.dict())
+        self.logger.info(json.dumps(data.dict()))
         return {
             "id": data.id,
             "predictions": prediction.tolist(),
