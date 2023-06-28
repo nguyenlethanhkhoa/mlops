@@ -65,7 +65,7 @@ class ModelPredictor:
         data.prediction = prediction
         data.drift = is_drifted
 
-        self.logger.info(data.dict())
+        # self.logger.info(data.dict())
         return {
             "id": data.id,
             "predictions": prediction.tolist(),
